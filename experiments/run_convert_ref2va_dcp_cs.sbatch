@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=h3-ref2va-dcp
 #SBATCH --account=nvr_elm_llm
-#SBATCH --partition=cpu_short
+#SBATCH --partition=cpu_short,cpu,cpu_long
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=160G
