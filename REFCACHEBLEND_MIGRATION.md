@@ -141,7 +141,7 @@ https://github.com/lyttttt3333/VMCache
 Latest pushed commit during migration:
 
 ```text
-b46e3b0 Update CS migration handoff status
+926ae0f Use torch 2.8 env for DCP conversion
 ```
 
 CS target directory:
@@ -158,7 +158,8 @@ Current CS status:
 - Missing Ref2VA support files were restored from a previous successful run archive into `RAVEN/projects/minimax_h3/modeling/ref2va_encoder.py` and `RAVEN/projects/minimax_h3/trials/base/minimax_h3_ref2va/minimax_h3_ref2va_rgb_depth_50nfe.yaml`.
 - A CS-compatible GPU launcher is staged at `experiments/run_refcacheblend_poc_cs.sbatch`; it defaults to the `sana` conda env and `polar4` with 4 GPUs.
 - DCP conversion jobs `33664848` and `33667026` were cancelled while pending.
-- Active replacement DCP conversion job `33667350` is pending across `cpu_short,cpu,cpu_long` so Slurm can start it on the earliest available CPU partition. It will write:
+- DCP conversion job `33667350` started but failed because the `sana` PyTorch 2.5 environment does not support `distribute_tensor(..., src_data_rank=None)`.
+- Active replacement DCP conversion job `33668723` is pending across `cpu_short,cpu,cpu_long` and uses the `lmflow` PyTorch 2.8 environment, which supports that API. It will write:
   - `/home/yitongl/code/models/MiniMax-H3-DCP/Ref2VA/transformer`
   - `/home/yitongl/code/models/MiniMax-H3-DCP/Ref2VA/text_encoder`
 
