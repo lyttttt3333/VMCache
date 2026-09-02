@@ -7,7 +7,7 @@ It does not include model weights, generated videos, or reference assets.
 ## Contents
 
 - `RAVEN_patch/`: patched files to overlay on top of `mvp-ai-lab/RAVEN`.
-- `experiments/`: POC manifests, Slurm runner, and summary script.
+- `experiments/`: POC manifests, asset-prep script, Slurm runner, and summary script.
 - `REFCACHEBLEND_MIGRATION.md`: cluster setup and run notes.
 
 ## Base Repository
@@ -35,3 +35,10 @@ python3 summarize_refcacheblend_poc.py <job_id>
 ```
 
 The runner expects MiniMax-H3 Ref2VA model assets under `~/code/models`; see `REFCACHEBLEND_MIGRATION.md`.
+
+Reference assets are intentionally excluded. Recreate them on a CPU/data node:
+
+```bash
+cd experiments
+sbatch -p cpu_short run_prepare_refcacheblend_assets.sbatch
+```

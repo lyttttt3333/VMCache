@@ -32,6 +32,9 @@ RAVEN/projects/minimax_h3/modeling/ref2va_reference.py
 Experiment files:
 
 ```text
+experiments/prepare_heavy_condition_asset_dataset_v5_32_pexels.py
+experiments/prepare_heavy_condition_asset_dataset_v6_8_pexels.py
+experiments/build_v6_ref2va_run_manifest.py
 experiments/build_refcacheblend_poc_manifests.py
 experiments/run_refcacheblend_poc.sbatch
 experiments/summarize_refcacheblend_poc.py
@@ -77,6 +80,24 @@ The current runner expects model assets in:
 ```
 
 CS and DRACO currently have some MiniMax-H3 model directories, but not this exact Ref2VA/DCP layout. Re-download or convert those assets before launching the POC.
+
+## Reference Assets
+
+The POC manifest can be regenerated from the V6 Pexels dataset. Do not run the download/transcode script on a login node; submit it to a CPU/data partition.
+
+```bash
+cd ~/code/condition_cache/experiments
+export H3_CONDITION_CACHE_ROOT=$PWD
+python3 prepare_heavy_condition_asset_dataset_v6_8_pexels.py
+python3 build_v6_ref2va_run_manifest.py
+python3 build_refcacheblend_poc_manifests.py
+```
+
+Expected asset root:
+
+```text
+experiments/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/
+```
 
 ## Run
 
