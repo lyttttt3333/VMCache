@@ -129,3 +129,43 @@ experiments/summaries/refcacheblend_poc_<job_id>/
 NRT job `6518159` was submitted on `batch_short` but remained pending with `QOSGrpGRES`.
 
 Previous failed NRT job `6517947` failed in 6 seconds because Slurm executed the script from its spool directory and the runner resolved `ROOT` incorrectly. This has been fixed by using `SLURM_SUBMIT_DIR` when `BASH_SOURCE[0]` points into `/cm/local/apps/slurm/var/spool/`.
+
+## 2026-09-02 CS/DRACO Update
+
+GitHub source is available at:
+
+```text
+https://github.com/lyttttt3333/VMCache
+```
+
+Latest pushed commit during migration:
+
+```text
+d0e4f94 Add CS RefCacheBlend POC launcher
+```
+
+CS target directory:
+
+```text
+/home/yitongl/code/condition_cache
+```
+
+Current CS status:
+
+- Reference assets were regenerated successfully by Slurm job `33664350`.
+- Generated manifest: `experiments/heavy_ref2va_v6_8_organic_pexels_hotmatch_3video_cases.json`.
+- Generated POC manifests: `experiments/refcacheblend_poc_manifests/{abc,a,b,c}.json`.
+- Missing Ref2VA support files were restored from a previous successful run archive into `RAVEN/projects/minimax_h3/modeling/ref2va_encoder.py` and `RAVEN/projects/minimax_h3/trials/base/minimax_h3_ref2va/minimax_h3_ref2va_rgb_depth_50nfe.yaml`.
+- A CS-compatible GPU launcher is staged at `experiments/run_refcacheblend_poc_cs.sbatch`; it defaults to the `sana` conda env and `polar4` with 4 GPUs.
+- DCP conversion job `33664848` is pending on `cpu_short`. It will write:
+  - `/home/yitongl/code/models/MiniMax-H3-DCP/Ref2VA/transformer`
+  - `/home/yitongl/code/models/MiniMax-H3-DCP/Ref2VA/text_encoder`
+
+NRT is currently not reachable from `cw-dfw-cs-001-vscode-02`; SSH returns `Permission denied (publickey,password)`.
+
+Once DCP conversion completes, launch the POC on CS:
+
+```bash
+cd /home/yitongl/code/condition_cache/experiments
+sbatch run_refcacheblend_poc_cs.sbatch
+```
