@@ -12,7 +12,7 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-if [[ -n "${SLURM_SUBMIT_DIR:-}" && "${SCRIPT_DIR}" == /cm/local/apps/slurm/var/spool/* ]]; then
+if [[ -n "${SLURM_SUBMIT_DIR:-}" && "${SCRIPT_DIR}" == *spool* ]]; then
   ROOT=${ROOT:-${SLURM_SUBMIT_DIR}}
 else
   ROOT=${ROOT:-${SCRIPT_DIR}}
