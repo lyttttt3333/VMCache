@@ -19,8 +19,8 @@ else
 fi
 
 RAVEN_ROOT=${RAVEN_ROOT:-${ROOT}/../RAVEN}
-PYTHON_BIN=${PYTHON_BIN:-/lustre/fsw/portfolios/nvr/users/yitongl/miniconda3/envs/sana/bin/python}
-TORCHRUN_BIN=${TORCHRUN_BIN:-/lustre/fsw/portfolios/nvr/users/yitongl/miniconda3/envs/sana/bin/torchrun}
+PYTHON_BIN=${PYTHON_BIN:-/lustre/fsw/portfolios/nvr/users/yitongl/miniconda3/envs/lmflow/bin/python}
+TORCHRUN_BIN=${TORCHRUN_BIN:-/lustre/fsw/portfolios/nvr/users/yitongl/miniconda3/envs/lmflow/bin/torchrun}
 HF_ROOT=${HF_ROOT:-/home/yitongl/code/models/MiniMax-H3-hf-9d710aed/FL2VA}
 DCP_ROOT=${DCP_ROOT:-/home/yitongl/code/models/MiniMax-H3-DCP/Ref2VA}
 NPROC=${NPROC:-32}
