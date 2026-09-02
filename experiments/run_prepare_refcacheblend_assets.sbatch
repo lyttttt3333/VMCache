@@ -21,6 +21,9 @@ fi
 cd "${ROOT}"
 mkdir -p logs
 export H3_CONDITION_CACHE_ROOT="${ROOT}"
+if [[ -z "${H3_FFMPEG_BIN:-}" && -x /usr/bin/ffmpeg ]]; then
+  export H3_FFMPEG_BIN=/usr/bin/ffmpeg
+fi
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
