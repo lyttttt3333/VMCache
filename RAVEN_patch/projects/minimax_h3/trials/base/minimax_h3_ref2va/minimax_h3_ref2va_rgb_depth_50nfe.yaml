@@ -1,0 +1,202 @@
+entry:
+  module: common.engine
+  class_name: BaseEngine
+
+logging:
+  plugins:
+    - module: common.plugin.wandb
+      class_name: WandbPlugin
+      mode: offline
+
+validation:
+  validate_ema: false
+  seed: 2026082031
+  ref_noise_seed: 2026082031
+  num_frames: 192
+  height: 768
+  width: 1344
+  fps: 24
+  nrow: 1
+  crf: 18
+  save_grid: false
+  conditions:
+    - type: video
+      path: __RGB_INPUT_VIDEO__
+      start_time_seconds: 0
+    - type: video
+      path: __DEPTH_INPUT_VIDEO__
+      start_time_seconds: 0
+  media_probes:
+    - width: 1344
+      height: 768
+      has_audio: true
+      audio_sample_rate: 44100
+      duration_seconds: 8.0
+    - width: 1344
+      height: 768
+      has_audio: false
+      audio_sample_rate: null
+      duration_seconds: 8.0
+  resolved_shapes:
+    - resolved_width: 1344
+      resolved_height: 768
+      frame_count: 192
+    - resolved_width: 1344
+      resolved_height: 768
+      frame_count: 192
+  processor_path: __MODEL_ROOT__/Ref2VA/processor
+  visual_anchor: 0.999
+  audio_anchor: 1.0
+  prompts:
+    - "__PROMPTS_SUPPLIED_BY_LAUNCHER__"
+  num_prompts: 3
+  batch_size: 1
+
+engine:
+  up_size:
+    train: 4
+    validation: 4
+
+diffusion:
+  sampling_timesteps:
+    module: common.diffusion.timestep.sampling.trailing
+    class_name: TrailingSamplingTimesteps
+    args:
+      T: 1.0
+      num_sampling_steps: 50
+      shift: 12.0
+  audio_sampling_timesteps:
+    module: common.diffusion.timestep.sampling.trailing
+    class_name: TrailingSamplingTimesteps
+    args:
+      T: 1.0
+      num_sampling_steps: 50
+      shift: 3.0
+  schedule:
+    module: common.diffusion.schedule.lerp
+    class_name: LinearInterpolationSchedule
+    args:
+      T: 1.0
+      pred_type: x_0
+  sampler:
+    module: common.diffusion.sampler.ddim
+    class_name: DDIMSampler
+    args: {}
+
+distributed:
+  up_size: [4]
+
+persistence:
+  proj_name: minimax_h3_ref2va_rgb_depth
+  exp_name: base_ref2va_50sigma
+  output_dir: __OUTPUT_ROOT__
+
+data:
+  module: projects.minimax_h3.data.causal_text_only
+  class_name: CausalTextOnlyT2AVDataset
+  num_workers: 2
+  prefetch_factor: 2
+  pin_memory: true
+  args:
+    tokenizer_path: __MODEL_ROOT__/Ref2VA/tokenizer
+    max_seqlen: 262144
+    max_seqlen_per_sample: 262144
+    max_retries: 5
+    sync_group_size: 1
+    height: 768
+    width: 1344
+    num_frames: 192
+    video_latent_channels: 24
+    audio_latent_channels: 32
+    spatial_vae_stride: 16
+
+meta_model:
+  module: projects.minimax_h3.meta_models.minimax_h3_ref2va
+  class_name: MiniMaxH3Ref2VABase
+
+models:
+  backbone:
+    module: projects.minimax_h3.modeling.build
+    class_name: MiniMaxH3X0DiTSP
+    meta_init: true
+    args:
+      __inherit__: projects/minimax_h3/configs/dit.yaml
+    runtime:
+      training: false
+      requires_grad: false
+      param_dtype: bfloat16
+    placement:
+      weight_dtype: float32
+      fsdp:
+        wrap_modules: [MiniMaxH3DiTBlock]
+        param_dtype: null
+        reduce_dtype: float32
+        shard_size: 4
+        cpu_offload: true
+      plugins:
+        - module: common.plugin.dcp_weights
+          class_name: ShardedDCPWeights
+          path: __H3_DIT_DCP__
+
+  text_encoder:
+    module: projects.minimax_h3.modeling.ref2va_encoder
+    class_name: build_ref2va_encoder
+    meta_init: true
+    args:
+      pretrained_model_name_or_path: __MODEL_ROOT__/Ref2VA/text_encoder
+    runtime:
+      training: false
+      requires_grad: false
+      param_dtype: bfloat16
+    placement:
+      weight_dtype: bfloat16
+      fsdp:
+        wrap_modules: [Qwen3VLTextDecoderLayer, Qwen3VLVisionBlock]
+        param_dtype: bfloat16
+        reduce_dtype: float32
+        shard_size: 4
+        cpu_offload: true
+      plugins:
+        - module: common.plugin.dcp_weights
+          class_name: ShardedDCPWeights
+          path: __TEXT_ENCODER_DCP__
+
+  video_vae:
+    module: projects.minimax_h3.modeling.build
+    class_name: MiniMaxH3VideoVAE
+    meta_init: false
+    args:
+      __inherit__: projects/minimax_h3/configs/video_vae.yaml
+    weight:
+      path: __MODEL_ROOT__/Ref2VA/video_vae/source/model.safetensors
+    runtime:
+      training: false
+      requires_grad: false
+      param_dtype: float16
+      plugins:
+        - module: common.plugin.autocast
+          class_name: AutocastNoGradWrapper
+          functions: [decode_base]
+          grad_enabled: false
+          autocast:
+            enabled: true
+            dtype: float16
+    placement:
+      weight_dtype: float32
+
+  audio_vae:
+    module: projects.minimax_h3.modeling.build
+    class_name: MiniMaxH3AudioVAE
+    meta_init: false
+    args:
+      __inherit__: projects/minimax_h3/configs/audio_vae.yaml
+    weight:
+      module: projects.minimax_h3.modeling.weights
+      class_name: MiniMaxH3AudioVAEWeightLoader
+      path: __MODEL_ROOT__/Ref2VA/audio_vae/model.safetensors
+    runtime:
+      training: false
+      requires_grad: false
+      param_dtype: float32
+    placement:
+      weight_dtype: float32
