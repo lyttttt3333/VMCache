@@ -317,43 +317,56 @@ def resolve_download(video_id: str) -> str:
         return response.geturl()
 
 
+def download_source(url: str, path: Path) -> None:
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=180) as response, path.open("wb") as out:
+        shutil.copyfileobj(response, out, length=1024 * 1024)
+
+
 def run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
 def transcode(video_id: str, clip_path: Path, start: float = 0.0) -> str:
     direct_url = resolve_download(video_id)
+    source_path = clip_path.with_suffix(".source.mp4")
+    if source_path.exists():
+        source_path.unlink()
+    download_source(direct_url, source_path)
     vf = (
         "fps=24,"
         "scale='if(gte(iw,ih),trunc(iw*704/ih/32)*32,704)':"
         "'if(gte(iw,ih),704,trunc(ih*704/iw/32)*32)':flags=lanczos,"
         "format=yuv420p"
     )
-    run(
-        [
-            str(FFMPEG),
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-ss",
-            str(start),
-            "-i",
-            direct_url,
-            "-t",
-            "5",
-            "-vf",
-            vf,
-            "-an",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "20",
-            str(clip_path),
-        ]
-    )
+    try:
+        run(
+            [
+                str(FFMPEG),
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-ss",
+                str(start),
+                "-i",
+                str(source_path),
+                "-t",
+                "5",
+                "-vf",
+                vf,
+                "-an",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "20",
+                str(clip_path),
+            ]
+        )
+    finally:
+        source_path.unlink(missing_ok=True)
     return direct_url
 
 
