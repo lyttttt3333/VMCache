@@ -17,10 +17,22 @@ OUT = ROOT / "artifacts/heavy_condition_asset_dataset_v5_32_organic_pexels_32ali
 CASES_DIR = OUT / "cases"
 SHEETS_DIR = OUT / "contact_sheets"
 OVERVIEWS_DIR = OUT / "overviews"
-FFMPEG = Path(
-    "/home/yitongl/code/streaming_h3/RAVEN/venv/lib/python3.10/site-packages/"
-    "imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2"
-)
+def resolve_ffmpeg() -> Path:
+    override = os.environ.get("H3_FFMPEG_BIN")
+    if override:
+        return Path(override)
+    try:
+        import imageio_ffmpeg
+
+        return Path(imageio_ffmpeg.get_ffmpeg_exe())
+    except Exception:
+        found = shutil.which("ffmpeg")
+        if found:
+            return Path(found)
+        raise RuntimeError("ffmpeg not found; set H3_FFMPEG_BIN or install imageio-ffmpeg/ffmpeg")
+
+
+FFMPEG = resolve_ffmpeg()
 
 
 NEW_CASES = [
