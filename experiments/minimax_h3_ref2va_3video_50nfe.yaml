@@ -1,0 +1,39 @@
+__inherit__: projects/minimax_h3/trials/base/minimax_h3_ref2va/minimax_h3_ref2va_rgb_depth_50nfe.yaml
+
+validation:
+  conditions:
+    - type: video
+      path: __REFERENCE_VIDEO_0__
+      start_time_seconds: 0
+    - type: video
+      path: __REFERENCE_VIDEO_1__
+      start_time_seconds: 0
+    - type: video
+      path: __REFERENCE_VIDEO_2__
+      start_time_seconds: 0
+  media_probes:
+    - width: 1376
+      height: 768
+      has_audio: false
+      audio_sample_rate: null
+      duration_seconds: 4.458333333333333
+    - width: 1376
+      height: 768
+      has_audio: false
+      audio_sample_rate: null
+      duration_seconds: 4.458333333333333
+    - width: 1376
+      height: 768
+      has_audio: false
+      audio_sample_rate: null
+      duration_seconds: 4.458333333333333
+  resolved_shapes:
+    - resolved_width: 1376
+      resolved_height: 768
+      frame_count: 107
+    - resolved_width: 1376
+      resolved_height: 768
+      frame_count: 107
+    - resolved_width: 1376
+      resolved_height: 768
+      frame_count: 107

@@ -1,0 +1,542 @@
+{
+  "name": "heavy_ref2va_v6_8_organic_pexels_hotmatch_3video_cases",
+  "target": {
+    "width": 1376,
+    "height": 768,
+    "fps": 24,
+    "num_frames": 107,
+    "duration_seconds": 4.458333333333333
+  },
+  "source_dataset": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/dataset_manifest.json",
+  "note": "Generated from v6 8-case organic Pexels dataset for hot-speed-matched TC+CC versus TC-only comparison.",
+  "cases": [
+    {
+      "id": "case00_flower_shop_bouquet_handoff",
+      "seed": 2026083100,
+      "prompt": "Use Video 1 for the flower-arrangement texture, Video 2 for bouquet wrapping and hand contact, and Video 3 for the flower-shop display. Generate a bright florist-shop shot where a florist finishes a bouquet, wraps it neatly, and hands it to a customer beside a colorful counter, preserving petal detail, paper folds, and soft storefront light.",
+      "theme": "flower arranging, bouquet wrapping, and shop display merged into one florist handoff",
+      "semantic_merge": "flower texture, wrapping action, and storefront display combine into a coherent bouquet purchase story",
+      "conditions": [
+        {
+          "type": "video",
+          "role": "detail/action: florist arranging flowers on a table",
+          "source_id": "pexels_6911353_flower_arrangement_table",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/00_case00_flower_shop_bouquet_handoff/ref01_pexels_6911353_flower_arrangement_table.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 704,
+            "height": 1248,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 704,
+            "resolved_height": 1248,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "subject/action: hands holding or wrapping a bouquet",
+          "source_id": "pexels_10026929_bouquet_hands",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/00_case00_flower_shop_bouquet_handoff/ref02_pexels_10026929_bouquet_hands.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "environment: colorful flower-shop display or counter",
+          "source_id": "pexels_6933521_flower_shop_counter",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/00_case00_flower_shop_bouquet_handoff/ref03_pexels_6933521_flower_shop_counter.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        }
+      ]
+    },
+    {
+      "id": "case01_rainy_bus_stop_commute",
+      "seed": 2026083101,
+      "prompt": "Use Video 1 for the rain-soaked city street, Video 2 for umbrella commuter motion, and Video 3 for the bus-stop or transit-side framing. Generate a rainy commute shot where a person waits under an umbrella near a bus stop as traffic passes on wet pavement, preserving rainfall streaks, reflections, and urban scale.",
+      "theme": "rainy street, commuter umbrella movement, and bus-stop context merged into one commute scene",
+      "semantic_merge": "rain texture, waiting commuter motion, and wet transit street context combine into a rainy bus-stop story",
+      "conditions": [
+        {
+          "type": "video",
+          "role": "environment/weather: rainy city traffic with bus and wet street reflections",
+          "source_id": "pexels_15661481_rainy_city_bus_traffic",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/01_case01_rainy_bus_stop_commute/ref01_pexels_15661481_rainy_city_bus_traffic.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "subject/action: pedestrian or commuter moving under an umbrella",
+          "source_id": "pexels_5687574_umbrella_rain_commuter",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/01_case01_rainy_bus_stop_commute/ref02_pexels_5687574_umbrella_rain_commuter.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "context: wet sidewalk or transit waiting area",
+          "source_id": "pexels_36370582_wet_transit_waiting_area",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/01_case01_rainy_bus_stop_commute/ref03_pexels_36370582_wet_transit_waiting_area.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        }
+      ]
+    },
+    {
+      "id": "case02_vineyard_harvest_wine_tasting",
+      "seed": 2026083102,
+      "prompt": "Use Video 1 for the vineyard rows and daylight, Video 2 for grape cluster or harvest hand detail, and Video 3 for wine pouring or tasting motion. Generate a vineyard tasting shot where a worker gathers grapes in the rows and the scene resolves into a glass of wine being poured at a rustic outdoor table, preserving grape texture, leaf movement, and warm late-day light.",
+      "theme": "vineyard rows, grape harvest detail, and wine pour merged into one farm-to-glass sequence",
+      "semantic_merge": "vineyard environment, grape handling, and wine service detail combine into a harvest tasting story",
+      "conditions": [
+        {
+          "type": "video",
+          "role": "environment: vineyard rows in daylight",
+          "source_id": "pexels_5528415_vineyard_rows_daylight",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/02_case02_vineyard_harvest_wine_tasting/ref01_pexels_5528415_vineyard_rows_daylight.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 704,
+            "height": 1248,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 704,
+            "resolved_height": 1248,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "detail/action: grapes on the vine or harvest handling",
+          "source_id": "pexels_9947672_grape_cluster_harvest",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/02_case02_vineyard_harvest_wine_tasting/ref02_pexels_9947672_grape_cluster_harvest.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "detail/action: wine pouring or tasting glass",
+          "source_id": "pexels_8093235_wine_pour_tasting",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/02_case02_vineyard_harvest_wine_tasting/ref03_pexels_8093235_wine_pour_tasting.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 704,
+            "height": 1248,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 704,
+            "resolved_height": 1248,
+            "frame_count": 107
+          }
+        }
+      ]
+    },
+    {
+      "id": "case03_pizza_kitchen_oven_service",
+      "seed": 2026083103,
+      "prompt": "Use Video 1 for pizza dough shaping, Video 2 for chef preparation motion, and Video 3 for oven or serving context. Generate a pizzeria kitchen shot where dough is stretched, topped, moved toward a hot oven, and served on a wooden counter, preserving flour dust, cheese texture, and warm kitchen light.",
+      "theme": "pizza dough, kitchen preparation, and oven service merged into one restaurant cooking shot",
+      "semantic_merge": "dough shaping, chef hand motion, and hot service context combine into a coherent pizza workflow",
+      "conditions": [
+        {
+          "type": "video",
+          "role": "action: pizza dough shaping on a work surface",
+          "source_id": "pexels_7172187_pizza_dough_shaping",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/03_case03_pizza_kitchen_oven_service/ref01_pexels_7172187_pizza_dough_shaping.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "subject/action: chef preparing pizza ingredients",
+          "source_id": "pexels_7172193_pizza_chef_preparation",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/03_case03_pizza_kitchen_oven_service/ref02_pexels_7172193_pizza_chef_preparation.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "environment/action: pizza oven or serving counter",
+          "source_id": "pexels_6603831_pizza_oven_service",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/03_case03_pizza_kitchen_oven_service/ref03_pexels_6603831_pizza_oven_service.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        }
+      ]
+    },
+    {
+      "id": "case04_fashion_atelier_sewing_fitting",
+      "seed": 2026083104,
+      "prompt": "Use Video 1 for fabric handling, Video 2 for sewing-machine motion, and Video 3 for garment fitting or mannequin context. Generate a fashion atelier shot where a tailor guides fabric through a sewing machine, lifts the garment, and adjusts it on a model or mannequin, preserving thread detail, fabric folds, and studio lighting.",
+      "theme": "fabric sewing, machine detail, and fitting-room adjustment merged into one atelier shot",
+      "semantic_merge": "textile texture, sewing-machine action, and garment fitting combine into one fashion workshop story",
+      "conditions": [
+        {
+          "type": "video",
+          "role": "detail/action: woman sewing fabric with a machine",
+          "source_id": "pexels_8517568_woman_sewing_fabric",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/04_case04_fashion_atelier_sewing_fitting/ref01_pexels_8517568_woman_sewing_fabric.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1312,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1312,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "action: sewing machine stitching denim fabric",
+          "source_id": "pexels_32866095_denim_sewing_machine",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/04_case04_fashion_atelier_sewing_fitting/ref02_pexels_32866095_denim_sewing_machine.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 704,
+            "height": 1248,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 704,
+            "resolved_height": 1248,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "subject/context: seamstress, measuring tape, and tailoring workspace",
+          "source_id": "pexels_6460122_seamstress_measuring_tape",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/04_case04_fashion_atelier_sewing_fitting/ref03_pexels_6460122_seamstress_measuring_tape.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        }
+      ]
+    },
+    {
+      "id": "case05_seafood_market_harbor_counter",
+      "seed": 2026083105,
+      "prompt": "Use Video 1 for fresh fish and ice-counter texture, Video 2 for vendor handling or market interaction, and Video 3 for harbor or seafood-stall context. Generate a morning seafood-market shot where a vendor arranges fish on crushed ice and hands an order across the counter while harbor light and passing shoppers remain coherent in the background.",
+      "theme": "fresh fish counter, market vendor motion, and harbor context merged into one seafood market scene",
+      "semantic_merge": "fish detail, vendor handling, and coastal market context combine into a coherent morning market story",
+      "conditions": [
+        {
+          "type": "video",
+          "role": "detail: fresh fish on crushed ice",
+          "source_id": "pexels_8352337_red_fish_on_ice",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/05_case05_seafood_market_harbor_counter/ref01_pexels_8352337_red_fish_on_ice.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "environment/action: seafood market stall with fresh fish",
+          "source_id": "pexels_992684_seafood_market_stall",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/05_case05_seafood_market_harbor_counter/ref02_pexels_992684_seafood_market_stall.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "context: outdoor fish market crowd and baskets",
+          "source_id": "pexels_38224900_fish_market_gathering",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/05_case05_seafood_market_harbor_counter/ref03_pexels_38224900_fish_market_gathering.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 704,
+            "height": 1248,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 704,
+            "resolved_height": 1248,
+            "frame_count": 107
+          }
+        }
+      ]
+    },
+    {
+      "id": "case06_art_gallery_painting_opening",
+      "seed": 2026083106,
+      "prompt": "Use Video 1 for gallery-wall and visitor spacing, Video 2 for artist brush or painting motion, and Video 3 for artwork close-up or exhibit lighting. Generate an art-gallery opening shot where visitors move past framed paintings while an artist adjusts a canvas near the wall, preserving clean gallery geometry, brush motion, and soft overhead light.",
+      "theme": "gallery walls, artist painting, and visitor motion merged into one opening-night scene",
+      "semantic_merge": "gallery geometry, artwork creation, and visitor viewing combine into an art-opening story",
+      "conditions": [
+        {
+          "type": "video",
+          "role": "environment/people: museum visitors discussing paintings",
+          "source_id": "pexels_7986429_museum_painting_discussion",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/06_case06_art_gallery_painting_opening/ref01_pexels_7986429_museum_painting_discussion.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "subject/action: artist painting abstract art on canvas",
+          "source_id": "pexels_8347848_artist_painting_canvas",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/06_case06_art_gallery_painting_opening/ref02_pexels_8347848_artist_painting_canvas.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 704,
+            "height": 1312,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 704,
+            "resolved_height": 1312,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "detail/environment: easel, canvas, and studio gallery lighting",
+          "source_id": "pexels_6607408_easel_painting_studio",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/06_case06_art_gallery_painting_opening/ref03_pexels_6607408_easel_painting_studio.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 704,
+            "height": 1248,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 704,
+            "resolved_height": 1248,
+            "frame_count": 107
+          }
+        }
+      ]
+    },
+    {
+      "id": "case07_living_room_weather_tv",
+      "seed": 2026083107,
+      "prompt": "Use Video 1 for the living-room TV screen and couch layout, Video 2 for remote-control hand interaction, and Video 3 for rain on the window. Generate a cozy living-room shot where someone turns on a weather broadcast while rain streaks down the window behind the couch, preserving TV reflections, hand motion on the remote, and cool rainy daylight.",
+      "theme": "living-room television, remote interaction, and rainy window weather merged into one indoor weather scene",
+      "semantic_merge": "TV screen setup, remote-control action, and rainy window texture combine into one home weather-broadcast story",
+      "conditions": [
+        {
+          "type": "video",
+          "role": "environment/object: living-room TV screen and media console",
+          "source_id": "pexels_5571655_living_room_tv_remote",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/07_case07_living_room_weather_tv/ref01_pexels_5571655_living_room_tv_remote.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "subject/action: people sitting on a sofa watching TV",
+          "source_id": "pexels_7981370_family_watching_tv",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/07_case07_living_room_weather_tv/ref02_pexels_7981370_family_watching_tv.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 1248,
+            "height": 704,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 1248,
+            "resolved_height": 704,
+            "frame_count": 107
+          }
+        },
+        {
+          "type": "video",
+          "role": "weather/detail: raindrops on glass with night traffic lights",
+          "source_id": "pexels_35180822_raindrops_window_night",
+          "path": "/home/yitongl/code/heavy_condition_cache/artifacts/heavy_condition_asset_dataset_v6_8_organic_pexels_hotmatch_32aligned/cases/07_case07_living_room_weather_tv/ref03_pexels_35180822_raindrops_window_night.mp4",
+          "start_time_seconds": 0.0,
+          "video_probe": {
+            "width": 704,
+            "height": 1248,
+            "has_audio": false,
+            "audio_sample_rate": null,
+            "duration_seconds": 5.0
+          },
+          "resolved_shape": {
+            "resolved_width": 704,
+            "resolved_height": 1248,
+            "frame_count": 107
+          }
+        }
+      ]
+    }
+  ]
+}
