@@ -29,6 +29,20 @@ export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 export OMP_NUM_THREADS=1
 
+python3 - <<'PY_DEPS'
+import importlib.util
+import subprocess
+import sys
+
+missing = []
+if importlib.util.find_spec("imageio_ffmpeg") is None:
+    missing.append("imageio-ffmpeg")
+if importlib.util.find_spec("PIL") is None:
+    missing.append("Pillow")
+if missing:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", *missing])
+PY_DEPS
+
 python3 prepare_heavy_condition_asset_dataset_v6_8_pexels.py
 python3 build_v6_ref2va_run_manifest.py
 python3 build_refcacheblend_poc_manifests.py
