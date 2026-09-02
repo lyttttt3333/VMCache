@@ -157,8 +157,8 @@ Current CS status:
 - Generated POC manifests: `experiments/refcacheblend_poc_manifests/{abc,a,b,c}.json`.
 - Missing Ref2VA support files were restored from a previous successful run archive into `RAVEN/projects/minimax_h3/modeling/ref2va_encoder.py` and `RAVEN/projects/minimax_h3/trials/base/minimax_h3_ref2va/minimax_h3_ref2va_rgb_depth_50nfe.yaml`.
 - A CS-compatible GPU launcher is staged at `experiments/run_refcacheblend_poc_cs.sbatch`; it defaults to the `sana` conda env and `polar4` with 4 GPUs.
-- DCP conversion job `33664848` was cancelled while pending on `cpu_short`.
-- Replacement DCP conversion job `33667026` is pending across `cpu_short,cpu,cpu_long` so Slurm can start it on the earliest available CPU partition. It will write:
+- DCP conversion jobs `33664848` and `33667026` were cancelled while pending.
+- Active replacement DCP conversion job `33667350` is pending across `cpu_short,cpu,cpu_long` so Slurm can start it on the earliest available CPU partition. It will write:
   - `/home/yitongl/code/models/MiniMax-H3-DCP/Ref2VA/transformer`
   - `/home/yitongl/code/models/MiniMax-H3-DCP/Ref2VA/text_encoder`
 
