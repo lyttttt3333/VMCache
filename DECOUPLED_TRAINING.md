@@ -65,3 +65,11 @@ stage should add the curated V5 32-case set with three unique reference videos
 per case, generate native coupled-teacher targets, and oversample those cases so
 training directly covers reference-reference interaction removal and composable
 `A/B/C` cache reuse.
+
+`scripts/build_v5_3ref_teacher_rollout_index.py` validates the 32-case source,
+requires all 96 references to be globally unique and present, and emits the
+rollout-worker schema. `run_v5_3ref_teacher_rollout_teacache2x_cw.sbatch` then
+runs four cases per persistent 4-GPU worker on `batch_short`, saving both the
+teacher latent and an MP4 for review. Its default array concurrency is two
+workers; increase it only when those GPUs will not delay the main training
+resume chain.
