@@ -23,10 +23,13 @@ other RAVEN components.
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import functools
+import hashlib
 import math
 import os
 import subprocess
+import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -567,7 +570,17 @@ def _decode_video(spec: RefBlockSpec) -> Any:
         f"fps={REFERENCE_FPS},"
         f"scale={spec.resolved_width}:{spec.resolved_height}:flags=lanczos,setsar=1"
     )
-    command = ["ffmpeg", "-v", "error"]
+    command = [
+        "ffmpeg",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-filter_threads",
+        "1",
+        "-filter_complex_threads",
+        "1",
+    ]
     if spec.start_time_seconds > 0:
         command += ["-ss", f"{spec.start_time_seconds:.9g}"]
     command += [
@@ -586,23 +599,115 @@ def _decode_video(spec: RefBlockSpec) -> Any:
         "rgb24",
         "pipe:1",
     ]
-    decoded = subprocess.run(command, check=True, capture_output=True)
-    payload = decoded.stdout
-    frame_bytes = spec.resolved_width * spec.resolved_height * 3
-    if len(payload) % frame_bytes:
-        raise ValueError(
-            "ffmpeg returned a partial reference-video frame, got "
-            f"{len(payload)} bytes for {spec.resolved_width}x{spec.resolved_height}"
+    stat = os.stat(spec.path)
+    cache_root = Path(
+        os.environ.get(
+            "MINIMAX_H3_REF_DECODE_CACHE",
+            "/tmp/"
+            f"minimax_h3_ref_decode_{os.environ.get('USER', 'user')}_"
+            f"{os.environ.get('SLURM_JOB_ID', 'nojid')}",
         )
-    actual_frames = len(payload) // frame_bytes
-    if actual_frames != spec.resolved_frame_count:
-        raise ValueError(
-            "reference video ended before the resolved frame count or was silently "
-            f"truncated, expected {spec.resolved_frame_count}, got {actual_frames}"
-        )
-    return np.frombuffer(payload, dtype=np.uint8).reshape(
-        actual_frames, spec.resolved_height, spec.resolved_width, 3
     )
+    cache_root.mkdir(parents=True, exist_ok=True)
+    cache_key = hashlib.sha256(
+        "\0".join(
+            [
+                str(Path(spec.path).resolve()),
+                str(stat.st_size),
+                str(stat.st_mtime_ns),
+                f"{spec.start_time_seconds:.9g}",
+                str(spec.resolved_width),
+                str(spec.resolved_height),
+                str(spec.resolved_frame_count),
+                str(REFERENCE_FPS),
+            ]
+        ).encode("utf-8")
+    ).hexdigest()
+    cache_path = cache_root / f"{cache_key}.npy"
+    lock_path = cache_root / f"{cache_key}.lock"
+    node_lock_key = hashlib.sha256(str(cache_root.resolve()).encode("utf-8")).hexdigest()[:16]
+    node_lock_path = Path("/tmp") / f"minimax_h3_ref_decode_{node_lock_key}.lock"
+
+    def _load_cache() -> Any:
+        cached = np.load(cache_path, allow_pickle=False)
+        expected = (
+            spec.resolved_frame_count,
+            spec.resolved_height,
+            spec.resolved_width,
+            3,
+        )
+        if tuple(cached.shape) != expected or cached.dtype != np.uint8:
+            raise ValueError(
+                f"cached reference video has shape/dtype {cached.shape}/{cached.dtype}, "
+                f"expected {expected}/uint8"
+            )
+        return cached
+
+    if cache_path.exists():
+        return _load_cache()
+
+    owns_lock = False
+    start_wait = time.monotonic()
+    while not owns_lock:
+        try:
+            lock_path.mkdir()
+            owns_lock = True
+        except FileExistsError:
+            if cache_path.exists():
+                return _load_cache()
+            if time.monotonic() - start_wait > 900:
+                raise TimeoutError(f"timed out waiting for decoded reference cache {cache_path}")
+            time.sleep(0.25)
+
+    tmp_path = cache_root / f"{cache_key}.{os.getpid()}.tmp"
+    try:
+        if cache_path.exists():
+            return _load_cache()
+        serialize_node = os.environ.get(
+            "MINIMAX_H3_REF_DECODE_SERIALIZE_NODE", "1"
+        ).lower() in {"1", "true", "yes", "on"}
+        lock_context = (
+            node_lock_path.open("a+")
+            if serialize_node
+            else contextlib.nullcontext()
+        )
+        with lock_context as node_lock:
+            if node_lock is not None:
+                fcntl.flock(node_lock.fileno(), fcntl.LOCK_EX)
+            try:
+                decoded = subprocess.run(command, check=True, capture_output=True)
+            finally:
+                if node_lock is not None:
+                    fcntl.flock(node_lock.fileno(), fcntl.LOCK_UN)
+        payload = decoded.stdout
+        frame_bytes = spec.resolved_width * spec.resolved_height * 3
+        if len(payload) % frame_bytes:
+            raise ValueError(
+                "ffmpeg returned a partial reference-video frame, got "
+                f"{len(payload)} bytes for {spec.resolved_width}x{spec.resolved_height}"
+            )
+        actual_frames = len(payload) // frame_bytes
+        if actual_frames != spec.resolved_frame_count:
+            raise ValueError(
+                "reference video ended before the resolved frame count or was silently "
+                f"truncated, expected {spec.resolved_frame_count}, got {actual_frames}"
+            )
+        result = np.frombuffer(payload, dtype=np.uint8).reshape(
+            actual_frames, spec.resolved_height, spec.resolved_width, 3
+        )
+        with tmp_path.open("wb") as handle:
+            np.save(handle, result, allow_pickle=False)
+        os.replace(tmp_path, cache_path)
+        return result
+    finally:
+        try:
+            tmp_path.unlink()
+        except FileNotFoundError:
+            pass
+        try:
+            lock_path.rmdir()
+        except FileNotFoundError:
+            pass
 
 
 def _encode_visual(video_vae: Any, media: Any, spec: RefBlockSpec) -> tuple[torch.Tensor, int, int, int]:

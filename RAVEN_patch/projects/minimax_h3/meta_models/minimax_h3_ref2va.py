@@ -11,7 +11,12 @@ from typing import Any
 import torch
 
 from common.distributed.ops import get_device
-from projects.minimax_h3.meta_models.minimax_h3_base import MiniMaxH3Base
+from projects.minimax_h3.meta_models.minimax_h3_base import (
+    MiniMaxH3Base,
+    _WallTimer,
+    _hot_timing_enabled,
+    _log_hot_timing,
+)
 from projects.minimax_h3.modeling.packing import (
     minimax_h3_packed_sequence_ref2va_blocks,
 )
@@ -182,28 +187,31 @@ class MiniMaxH3Ref2VABase(MiniMaxH3Base):
             resolved_shapes=validation.resolved_shapes,
             target_frame_count=int(validation.num_frames),
         )
-        plan = encode_ref_block_plan(
-            specs,
-            video_vae=models["video_vae"],
-            audio_vae=models["audio_vae"],
-            target_latent_t=latent_shape[1],
-            noise_seed=int(validation.get("ref_noise_seed", validation.seed)),
-            visual_anchor=float(
-                validation.get("visual_anchor", validation.get(
-                    "imgvid_cond_noise_aug_for_inference", 0.999
-                ))
-            ),
-            audio_anchor=float(validation.get("audio_anchor", 1.0)),
-        )
+        with _WallTimer("reference_encode", num_ref_blocks=len(specs)):
+            plan = encode_ref_block_plan(
+                specs,
+                video_vae=models["video_vae"],
+                audio_vae=models["audio_vae"],
+                target_latent_t=latent_shape[1],
+                noise_seed=int(validation.get("ref_noise_seed", validation.seed)),
+                visual_anchor=float(
+                    validation.get("visual_anchor", validation.get(
+                        "imgvid_cond_noise_aug_for_inference", 0.999
+                    ))
+                ),
+                audio_anchor=float(validation.get("audio_anchor", 1.0)),
+            )
 
-        processor = MiniMaxH3Ref2VAPresentationProcessor.from_pretrained(
-            _processor_path(validation)
-        )
-        presentations = [
-            processor.build(str(prompt), plan.qwen_media) for prompt in prompts
-        ]
-        text_lens = [int(item.input_ids.numel()) for item in presentations]
-        prompt_embeds = self._encode_prompts(models, presentations, text_lens)
+        with _WallTimer("presentation_build", num_prompts=len(prompts)):
+            processor = MiniMaxH3Ref2VAPresentationProcessor.from_pretrained(
+                _processor_path(validation)
+            )
+            presentations = [
+                processor.build(str(prompt), plan.qwen_media) for prompt in prompts
+            ]
+            text_lens = [int(item.input_ids.numel()) for item in presentations]
+        with _WallTimer("text_encode", num_prompts=len(prompts)):
+            prompt_embeds = self._encode_prompts(models, presentations, text_lens)
 
         device = get_device()
         native = [
@@ -259,7 +267,12 @@ class MiniMaxH3Ref2VABase(MiniMaxH3Base):
         audio_xts: list[torch.Tensor],
         video_timesteps: torch.Tensor,
         audio_timesteps: torch.Tensor,
+        decoupled_ref_attention: bool = False,
     ) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
+        decoupled_ref_attention = bool(
+            decoupled_ref_attention
+            or getattr(self, "_ref2va_force_decoupled_ref_attention", False)
+        )
         device = inputs.token_tags.device
         assert len(video_xts) == len(audio_xts) == inputs.batch_size
         assert len(inputs.native) == len(inputs.reference_plans) == inputs.batch_size
@@ -447,7 +460,15 @@ class MiniMaxH3Ref2VABase(MiniMaxH3Base):
             },
         )
         if self._condition_kv_cache_enabled():
-            cache_state = getattr(self, "_ref2va_condition_cache_state", None)
+            if decoupled_ref_attention:
+                raise ValueError(
+                    "decoupled_ref_attention and condition KV cache are mutually "
+                    "exclusive forward modes"
+                )
+            dit = getattr(model, "dit", None)
+            cache_state = getattr(dit, "_condition_cache_state_internal", None)
+            if cache_state is None:
+                cache_state = getattr(self, "_ref2va_condition_cache_state", None)
             if cache_state is None:
                 cache_state = {}
                 self._ref2va_condition_cache_state = cache_state
@@ -466,7 +487,60 @@ class MiniMaxH3Ref2VABase(MiniMaxH3Base):
                 ),
                 condition_cache_force_refresh=self._condition_kv_cache_force_refresh(),
             )
-        video_logits, audio_logits = model(**kwargs)
+        elif decoupled_ref_attention:
+            kwargs.update(
+                decoupled_ref_attention_asset_spans=torch.tensor(
+                    condition_asset_spans,
+                    dtype=torch.long,
+                    device=device,
+                ),
+            )
+        if _hot_timing_enabled() and torch.cuda.is_available():
+            start_event = torch.cuda.Event(enable_timing=True)
+            end_event = torch.cuda.Event(enable_timing=True)
+            start_event.record()
+            video_logits, audio_logits = model(**kwargs)
+            end_event.record()
+            torch.cuda.synchronize()
+            elapsed = torch.tensor(
+                [start_event.elapsed_time(end_event)],
+                device=device,
+                dtype=torch.float32,
+            )
+            from common.distributed import ops
+
+            ops.all_reduce_max(elapsed)
+            dit = getattr(model, "dit", None)
+            cache_state = getattr(dit, "_condition_cache_state_internal", None)
+            if cache_state is None:
+                cache_state = getattr(self, "_ref2va_condition_cache_state", None)
+            cache_mode = "no_cache"
+            fill_count = 0
+            reuse_count = 0
+            prefix_refresh_count = 0
+            if cache_state is not None:
+                cache_mode = str(cache_state.get("last_mode", "unknown"))
+                fill_count = int(cache_state.get("fill_count", 0))
+                reuse_count = int(cache_state.get("reuse_count", 0))
+                prefix_refresh_count = int(cache_state.get("prefix_refresh_count", 0))
+            step = int(getattr(self, "_h3_hot_timing_step", -1))
+            _log_hot_timing(
+                {
+                    "event": "dit_forward",
+                    "elapsed_ms": float(elapsed.item()),
+                    "step": step,
+                    "num_steps": int(getattr(self, "_h3_hot_timing_num_steps", -1)),
+                    "video_timestep": float(video_timesteps[0].item()),
+                    "audio_timestep": float(audio_timesteps[0].item()),
+                    "cache_enabled": self._condition_kv_cache_enabled(),
+                    "cache_mode": cache_mode,
+                    "fill_count": fill_count,
+                    "reuse_count": reuse_count,
+                    "prefix_refresh_count": prefix_refresh_count,
+                }
+            )
+        else:
+            video_logits, audio_logits = model(**kwargs)
 
         video_out: list[torch.Tensor] = []
         audio_out: list[torch.Tensor] = []

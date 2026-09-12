@@ -1,0 +1,202 @@
+__inherit__: projects/minimax_h3/trials/base/minimax_h3_ref2va/minimax_h3_ref2va_rgb_depth_50nfe.yaml
+
+entry:
+  module: engines.diffusion_finetuning
+  class_name: DiffusionFinetuning
+
+meta_model:
+  module: projects.minimax_h3.meta_models.minimax_h3_ref2va_decoupled_distill
+  class_name: MiniMaxH3Ref2VADecoupledDistill
+  audio_loss_weight: 1.0
+  packer_data:
+    module: projects.minimax_h3.data.causal_text_only
+    class_name: CausalTextOnlyT2AVDataset
+    args:
+      tokenizer_path: __MODEL_ROOT__/Ref2VA/tokenizer
+      max_seqlen: 262144
+      max_seqlen_per_sample: 262144
+      max_retries: 5
+      sync_group_size: 1
+      height: 768
+      width: 1344
+      num_frames: 192
+      video_latent_channels: 24
+      audio_latent_channels: 32
+      spatial_vae_stride: 16
+
+diffusion:
+  training_timesteps:
+    module: projects.minimax_h3.modeling.training_timesteps
+    class_name: PairedLogitNormalTrainingTimesteps
+    args:
+      T: 1.0
+      loc: 0.0
+      scale: 1.0
+      shift: 12.0
+      audio_shift: 3.0
+      clamp_min: 0.0
+      clamp_max: 1.0
+
+engine:
+  training_steps: 100000
+  algorithm_batch_size: 16
+  ga_steps: 1
+  log_interval: 10
+  save_start_step: 0
+  save_interval: 10
+  val_start_step: 100
+  val_interval: 100
+  save_before_train: false
+  val_before_train: true
+  resume: auto
+  early_stop_hours: 1.8
+  seed: 2026091201
+  clip_grad_norm: 1.0
+  up_size:
+    train: 4
+    validation: null
+
+distributed:
+  up_size: [4]
+
+validation:
+  covebench_manifest: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/users/yitongl/code/heavy_condition_cache/artifacts/covebench_validation_final_32.json
+  covebench_rollout_index: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/users/yitongl/code/heavy_condition_cache/covebench_teacher_rollout_index.json
+  covebench_reference_root: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/users/yitongl/code/heavy_condition_cache/artifacts/covebench_teacher_rollout/cases
+  covebench_teacher_video_root: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/users/yitongl/code/heavy_condition_cache/artifacts/covebench_teacher_rollout_teacache_2x/videos
+  target:
+    width: 1344
+    height: 768
+    fps: 24
+    num_frames: 124
+  save_grid: false
+
+data:
+  module: projects.minimax_h3.data.ref2va_distill
+  class_name: Ref2VATeacherRolloutDataset
+  num_workers: 0
+  prefetch_factor: null
+  pin_memory: false
+  args:
+    manifest_path: ref2va_decoupled_distill_train_manifest.json
+    require_teacher_latents: true
+    shuffle: true
+    exclude_ids_path: /lustre/fsw/portfolios/nvr/projects/nvr_elm_llm/users/yitongl/code/heavy_condition_cache/artifacts/covebench_validation_final_32.json
+
+models:
+  backbone:
+    runtime:
+      training: true
+      requires_grad: false
+      param_dtype: bfloat16
+      plugins:
+        - module: common.plugin.gradient_checkpointing
+          class_name: NativeGradientCheckpointing
+          enabled: true
+          gc_start_idx: 0
+          gc_step: 1
+        - module: common.plugin.trainable
+          class_name: LoraOnlyTrainable
+    placement:
+      # FSDP2 requires one original dtype per managed block. Keep the frozen
+      # trunk and the small LoRA adapters uniformly in BF16 for the forward.
+      weight_dtype: bfloat16
+      cast_frozen: true
+      fsdp:
+        wrap_modules: [MiniMaxH3DiTBlock]
+        param_dtype: bfloat16
+        reduce_dtype: float32
+        shard_size: 4
+        group_backend: nccl
+        cpu_offload: false
+      plugins:
+        - module: common.plugin.dcp_weights
+          class_name: ShardedDCPWeights
+          path: __H3_DIT_DCP__
+          key_map:
+            - src: '^base_model\.model\.'
+              tgt: ''
+            - src: '\.base_layer(?=\.(weight|bias)$)'
+              tgt: ''
+          allow_missing:
+            - '(^|\.)lora_[AB]\.'
+            - '(^|\.)lora_embedding_[AB]\.'
+            - '(^|\.)rope\.inv_freq$'
+    adapter:
+      r: 16
+      lora_alpha: 16
+      target_modules:
+        - qkv_proj
+        - out_proj
+        - fc1
+        - fc2
+        - linear
+        - condition_proj
+        - video_patch_proj
+        - audio_patch_proj
+        - video_out
+        - audio_out
+        - proj_in
+        - proj_out
+      custom_module_mapping:
+        - source:
+            module: projects.minimax_h3.modeling.transformer.model
+            class_name: _Linear
+          target:
+            module: projects.minimax_h3.modeling.lora
+            class_name: MiniMaxH3LoraLinear
+    optimizer:
+      - module: torch.optim
+        class_name: AdamW
+        args:
+          lr: 1.0e-4
+          weight_decay: 0.0
+          betas: [0.9, 0.999]
+          eps: 1.0e-8
+          fused: true
+
+  teacher_backbone:
+    module: projects.minimax_h3.modeling.build
+    class_name: MiniMaxH3X0DiTSP
+    meta_init: true
+    args:
+      __inherit__: projects/minimax_h3/configs/dit.yaml
+    runtime:
+      training: false
+      requires_grad: false
+      param_dtype: bfloat16
+    placement:
+      weight_dtype: bfloat16
+      cast_frozen: true
+      fsdp:
+        wrap_modules: [MiniMaxH3DiTBlock]
+        param_dtype: bfloat16
+        reduce_dtype: float32
+        shard_size: 4
+        group_backend: nccl
+        cpu_offload: true
+      plugins:
+        - module: common.plugin.dcp_weights
+          class_name: ShardedDCPWeights
+          path: __H3_DIT_DCP__
+
+  text_encoder:
+    placement:
+      cast_frozen: true
+      fsdp:
+        group_backend: nccl
+
+persistence:
+  proj_name: minimax_h3_ref2va_decoupled_distill
+  exp_name: decoupled_reference_student
+  output_dir: __OUTPUT_ROOT__
+  checkpoint:
+    async: false
+    keep_latest_k: 2
+    handlers:
+      models.backbone:
+        module: common.persistence
+        class_name: ModelHandler
+        args:
+          ignore_frozen_params: true
+        strict: true

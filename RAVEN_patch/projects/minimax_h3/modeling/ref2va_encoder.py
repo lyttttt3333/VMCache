@@ -264,8 +264,6 @@ class MiniMaxH3Ref2VAPresentationProcessor:
     ) -> Ref2VAPresentation:
         """Build ids, synchronized tags, and Qwen pixels in request order."""
 
-        if not prompt:
-            raise ValueError("prompt must be non-empty")
         media = tuple(ordered_media)
 
         counters: dict[ConditionKind, int] = {"image": 0, "audio": 0, "video": 0}
@@ -436,7 +434,8 @@ class MiniMaxH3Ref2VAPresentationProcessor:
                 )
                 rendered_blocks.append((condition.request_index, block_index))
 
-        presentation.text(_text_ids(self.tokenizer, prompt))
+        if prompt:
+            presentation.text(_text_ids(self.tokenizer, prompt))
         input_ids, text_token_tags = presentation.build()
 
         expected_blocks = [

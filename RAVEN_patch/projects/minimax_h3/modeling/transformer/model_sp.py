@@ -78,6 +78,7 @@ from .model import (
 _SP_FORWARD_SUPPORTED_KWARGS = _FORWARD_SUPPORTED_KWARGS | {
     "condition_cache_asset_spans",
     "condition_cache_text_len",
+    "decoupled_ref_attention_asset_spans",
 }
 
 
@@ -335,13 +336,19 @@ def _load_refcacheblend_composed_kv(
             )
         k_parts = [text_k]
         v_parts = [text_v]
-        for payload in asset_payloads:
+        for span_index, (payload, (start, stop)) in enumerate(zip(asset_payloads, spans)):
             assets = payload["layers"][layer_index]["assets"]
             if len(assets) != 1:
                 raise ValueError(
                     "single-asset RefCacheBlend import expects payloads with one asset"
                 )
             asset_k, asset_v = assets[0]
+            expected_rows = stop - start
+            if int(asset_k.shape[0]) != expected_rows:
+                raise ValueError(
+                    f"RefCacheBlend asset rows mismatch at layer {layer_index}, "
+                    f"asset {span_index}: {int(asset_k.shape[0])} != {expected_rows}"
+                )
             k_parts.append(asset_k)
             v_parts.append(asset_v)
         k = torch.cat(k_parts, dim=0)
@@ -404,6 +411,134 @@ def _project_attention_qkv(
     q, k = _apply_qk_norm(q, k, attention.q_norm, attention.k_norm, attention.head_dim)
     q, k = _apply_rope_qk(q, k, cos_sin_cache, positions)
     return q, k, v
+
+
+def _decoupled_ref_attention_core(
+    attention: MiniMaxH3Attention,
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    *,
+    cu_seqlens_host: tuple[int, ...] | None,
+    asset_spans: torch.Tensor | None,
+) -> torch.Tensor:
+    """Attention for the decoupled Ref2VA student.
+
+    Text and target/noisy generation rows remain active and attend the full
+    packed document. Each video/image reference asset attends only within its
+    own rows, so references never consume text or generation rows and never mix
+    with other reference assets inside the block.
+    """
+    if cu_seqlens_host is None:
+        raise ValueError("decoupled reference attention requires cu_seqlens_host")
+    fallback_cu = torch.tensor(cu_seqlens_host, dtype=torch.int32, device=q.device)
+    fallback_max = max(
+        stop - start
+        for start, stop in zip(cu_seqlens_host[:-1], cu_seqlens_host[1:])
+    )
+    if asset_spans is None or int(asset_spans.numel()) == 0:
+        return _minimax_h3_attention_core_impl(
+            attention,
+            q,
+            k,
+            v,
+            cu_seqlens=fallback_cu,
+            cu_seqlens_host=cu_seqlens_host,
+            max_seqlen=fallback_max,
+            ulysses_active=False,
+        )
+
+    raw_spans = [
+        (int(start), int(stop))
+        for start, stop in asset_spans.detach().to(device="cpu", dtype=torch.long).tolist()
+        if int(stop) > int(start)
+    ]
+    if not raw_spans:
+        return _minimax_h3_attention_core_impl(
+            attention,
+            q,
+            k,
+            v,
+            cu_seqlens=fallback_cu,
+            cu_seqlens_host=cu_seqlens_host,
+            max_seqlen=fallback_max,
+            ulysses_active=False,
+        )
+
+    device = q.device
+    q_chunks: list[torch.Tensor] = []
+    k_chunks: list[torch.Tensor] = []
+    v_chunks: list[torch.Tensor] = []
+    out_indices: list[torch.Tensor] = []
+    q_lens: list[int] = []
+    k_lens: list[int] = []
+    output = torch.empty_like(q)
+
+    sorted_spans = sorted(raw_spans)
+    span_cursor = 0
+    for doc_start, doc_stop in zip(cu_seqlens_host[:-1], cu_seqlens_host[1:]):
+        doc_spans: list[tuple[int, int]] = []
+        while span_cursor < len(sorted_spans) and sorted_spans[span_cursor][1] <= doc_start:
+            span_cursor += 1
+        probe = span_cursor
+        while probe < len(sorted_spans) and sorted_spans[probe][0] < doc_stop:
+            start, stop = sorted_spans[probe]
+            if start < doc_start or stop > doc_stop:
+                raise ValueError(
+                    "decoupled reference asset span crosses packed-document "
+                    f"boundary: [{start}, {stop}) not inside [{doc_start}, {doc_stop})"
+                )
+            if doc_spans and start < doc_spans[-1][1]:
+                raise ValueError("decoupled reference asset spans must be non-overlapping")
+            doc_spans.append((start, stop))
+            probe += 1
+
+        doc_len = int(doc_stop - doc_start)
+        doc_indices = torch.arange(doc_start, doc_stop, device=device, dtype=torch.long)
+        active_mask = torch.ones(doc_len, device=device, dtype=torch.bool)
+        for start, stop in doc_spans:
+            active_mask[start - doc_start : stop - doc_start] = False
+        active_indices = doc_indices[active_mask]
+        if int(active_indices.numel()) > 0:
+            q_chunks.append(q.index_select(0, active_indices))
+            k_chunks.append(k.narrow(0, doc_start, doc_len))
+            v_chunks.append(v.narrow(0, doc_start, doc_len))
+            out_indices.append(active_indices)
+            q_lens.append(int(active_indices.numel()))
+            k_lens.append(doc_len)
+
+        for start, stop in doc_spans:
+            span_len = int(stop - start)
+            span_indices = torch.arange(start, stop, device=device, dtype=torch.long)
+            q_chunks.append(q.narrow(0, start, span_len))
+            k_chunks.append(k.narrow(0, start, span_len))
+            v_chunks.append(v.narrow(0, start, span_len))
+            out_indices.append(span_indices)
+            q_lens.append(span_len)
+            k_lens.append(span_len)
+
+    if sum(q_lens) != int(q.shape[0]):
+        raise RuntimeError(
+            "decoupled reference attention did not cover every query row: "
+            f"{sum(q_lens)} vs {int(q.shape[0])}"
+        )
+
+    attended = _MINIMAX_H3_FLASH_ATTENTION(
+        torch.cat(q_chunks, dim=0),
+        torch.cat(k_chunks, dim=0),
+        torch.cat(v_chunks, dim=0),
+        q_lens=torch.tensor(q_lens, dtype=torch.int32, device=device),
+        k_lens=torch.tensor(k_lens, dtype=torch.int32, device=device),
+        dropout_p=0.0,
+        softmax_scale=attention.softmax_scale,
+        causal=False,
+    )
+    cursor = 0
+    for indices in out_indices:
+        stop = cursor + int(indices.numel())
+        output.index_copy_(0, indices, attended[cursor:stop])
+        cursor = stop
+    return output
 
 
 _TOKEN_DYNAMICS_TRACE_STATE: dict[tuple[int, str, str], torch.Tensor] = {}
@@ -600,6 +735,7 @@ class MiniMaxH3AttentionSP(MiniMaxH3Attention):
         target_ordinals: torch.Tensor | None = None,
         q_lens: torch.Tensor | None = None,
         k_lens: torch.Tensor | None = None,
+        decoupled_ref_attention_asset_spans: torch.Tensor | None = None,
     ) -> torch.Tensor | tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
         """x: [T_local, hidden] this rank's row shard -> [T_local, hidden].
 
@@ -613,6 +749,11 @@ class MiniMaxH3AttentionSP(MiniMaxH3Attention):
                 raise NotImplementedError(
                     "condition KV cache is implemented only for MiniMaxH3AttentionSP"
                 )
+            if decoupled_ref_attention_asset_spans is not None:
+                raise NotImplementedError(
+                    "decoupled reference attention is implemented only under "
+                    "unified-parallel MiniMaxH3AttentionSP"
+                )
             return super().forward(
                 x,
                 rope_cache=rope_cache,
@@ -620,6 +761,10 @@ class MiniMaxH3AttentionSP(MiniMaxH3Attention):
                 cu_seqlens_host=cu_seqlens_host,
                 max_seqlen=max_seqlen,
                 ulysses_active=ulysses_active,
+            )
+        if condition_cache_mode is not None and decoupled_ref_attention_asset_spans is not None:
+            raise ValueError(
+                "condition KV cache and decoupled reference attention are mutually exclusive"
             )
 
         q, k, v = _project_attention_qkv(self, x, rope_cache=rope_cache)
@@ -690,18 +835,28 @@ class MiniMaxH3AttentionSP(MiniMaxH3Attention):
             if self.bcg_breakpoint
             else _minimax_h3_attention_core_impl
         )
-        out = attention_core(
-            self,
-            q,
-            k,
-            v,
-            cu_seqlens=cu_seqlens,
-            cu_seqlens_host=cu_seqlens_host,
-            max_seqlen=max_seqlen,
-            # The exchange is done here with this repo's collectives; the
-            # upstream sglang usp branch inside the core stays off.
-            ulysses_active=False,
-        )
+        if decoupled_ref_attention_asset_spans is None:
+            out = attention_core(
+                self,
+                q,
+                k,
+                v,
+                cu_seqlens=cu_seqlens,
+                cu_seqlens_host=cu_seqlens_host,
+                max_seqlen=max_seqlen,
+                # The exchange is done here with this repo's collectives; the
+                # upstream sglang usp branch inside the core stays off.
+                ulysses_active=False,
+            )
+        else:
+            out = _decoupled_ref_attention_core(
+                self,
+                q,
+                k,
+                v,
+                cu_seqlens_host=cu_seqlens_host,
+                asset_spans=decoupled_ref_attention_asset_spans,
+            )
 
         out = gather_heads_scatter_seq(out.flatten(1), head_dim=1, seq_dim=0)
         out, _ = self.out_proj(out)
@@ -900,6 +1055,11 @@ class MiniMaxH3DiTModelSP(MiniMaxH3DiTModel):
         the row shards are gathered before the output rows are selected.
         """
         if not is_unified_parallel_initialized() or get_unified_parallel_world_size() <= 1:
+            if kwargs.get("decoupled_ref_attention_asset_spans") is not None:
+                raise NotImplementedError(
+                    "decoupled reference attention requires unified parallel "
+                    "MiniMaxH3DiTModelSP"
+                )
             if kwargs.get("condition_cache_state") is not None and os.environ.get(
                 "H3_REF2VA_CONDITION_KV_CACHE_DEBUG"
             ) and (not dist.is_available() or not dist.is_initialized() or dist.get_rank() == 0):
@@ -1101,6 +1261,13 @@ class MiniMaxH3DiTModelSP(MiniMaxH3DiTModel):
 
         cu_seqlens = cu_seqlens.to(device)
         condition_cache_state = kwargs.get("condition_cache_state")
+        decoupled_ref_attention_asset_spans = kwargs.get(
+            "decoupled_ref_attention_asset_spans"
+        )
+        if condition_cache_state is not None and decoupled_ref_attention_asset_spans is not None:
+            raise ValueError(
+                "condition KV cache and decoupled reference attention are mutually exclusive"
+            )
         condition_target_only = False
         local_target_positions = None
         target_global_indices = None
@@ -1188,6 +1355,7 @@ class MiniMaxH3DiTModelSP(MiniMaxH3DiTModel):
                 # unvendored sglang usp path inside the attention core.
                 ulysses_active=False,
                 adaln_params=None,
+                decoupled_ref_attention_asset_spans=decoupled_ref_attention_asset_spans,
             )
 
         if classify_mode:
