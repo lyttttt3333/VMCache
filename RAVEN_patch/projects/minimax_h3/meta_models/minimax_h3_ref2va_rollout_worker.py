@@ -53,6 +53,9 @@ class MiniMaxH3Ref2VATeacherRolloutWorker(MiniMaxH3Ref2VABase):
             rollout_index = json.load(f)
         cases = list(rollout_index["cases"])
         target = dict(rollout_index["target"])
+        # The rollout index owns the output geometry. Do not retain a packer
+        # built for a previous validation invocation or inherited config shape.
+        self._validation_packer_cache = None
 
         raw_indices = validation.get("case_indices", None)
         if raw_indices is not None and str(raw_indices).strip():
